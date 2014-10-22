@@ -1,28 +1,44 @@
 #!/usr/bin/env php -d memory_limit=102M
 <?php
-/**************************************************************
-*   __ ____ ____ ______ ______ _____ _      ______  _____     *
-*  /_ |___ \___ \____  |  ____|_   _| |    |  ____|/ ____|    *
-*   | | __) |__) |  / /| |__    | | | |    | |__  | (___      *
-*   | ||__ <|__ <  / / |  __|   | | | |    |  __|  \___ \     *
-*   | |___) |__) |/ /  | |     _| |_| |____| |____ ____) |    *
-*   |_|____/____//_/   |_|    |_____|______|______|_____/     *
-*   ______ ______ ______ ______ ______ ______ ______ ______   *
-*  |______|______|______|______|______|______|______|______|  *
-*                                                             *
-***************************************************************/
-define("version",2.0);
+ 
+/*
+The MIT License (MIT)
+ 
+Copyright (c) 2014 Daniel Troger
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+ 
+define("version","2.1.3b");
 define("tool","leetfiles-cli");
-define("usage","\033[31m" . tool . " v" . version . "\033[0m\n\033[32mUsage:\033[0m\n\033[36m" .$argv[0] ."\033[0m [[-r,--register <username>] [-a, --activate <username> <serial>], [-h, --help], [-v, --version]] [language=]<file> [[language=]<file2>] [[language=]<file>3] ...\033[32m uploads each file to leetfiles.com with automatic file / image detection.\nIf language is specified a paste is being done and language is used for the syntax highligter.\033[0m\n\n\033[33mExamples:\033[0m\n\033[36m{$argv[0]}\033[0m \033[32mfi.le\033[0m uploads fi.le as an image\n\033[36m{$argv[0]}\033[0m \033[32m/an/image.png\033[0m uploads image.png as image\n\033[36m{$argv[0]}\033[0m \033[32mphp=anscript.php plain=plain.txt\033[0m pastes anscript.php with php as language and plain.txt\n\033[36m{$argv[0]}\033[0m \033[32m-r <USERNAME>\033[0m registers the user <USERNAME> to this computer\n\033[36m{$argv[0]}\033[0m \033[32m-a <USERNAME> <SERIAL>\033[0m verifies the registration of <USERNAME> with a serial sent by email\n\n\033[36m" .$argv[0] . "\033[0m -v,--version \033[32mprints the " . tool . " version\033[0m\n\033[36m" .$argv[0] . "\033[0m -r,--register \033[32mregisters this computer to your leetfiles account\033[0m\n\033[36m" .$argv[0] . "\033[0m -a,--activate \033[32mactivates a registration with an serial number sent by email\033[0m\n\n\033[36m" .$argv[0] . "\033[0m -h,--help \033[32mshows this help\033[0m\n");
+define("debug",false);
+define("usage","[31m" . tool . " v" . version . "[0m" . PHP_EOL . "[32mUsage:[0m" . PHP_EOL . "[36m" .$argv[0] ."[0m [[-r,--register <username>] [-a, --activate <username> <serial>], [-h, --help], [-v, --version]] [language=]<file> [[language=]<file2>] [[language=]<file>3] ...[32m uploads each file to leetfiles.com with automatic file / image detection." . PHP_EOL . "If language is specified a paste is being done and language is used for the syntax highligter.[0m" . PHP_EOL . PHP_EOL . "[33mExamples:[0m" . PHP_EOL . "[36m{$argv[0]}[0m [32mfi.le[0m uploads fi.le as an image" . PHP_EOL . "[36m{$argv[0]}[0m [32m/an/image.png[0m uploads image.png as image" . PHP_EOL . "[36m{$argv[0]}[0m [32mphp=anscript.php plain=plain.txt[0m pastes anscript.php with php as language and plain.txt" . PHP_EOL . "[36m{$argv[0]}[0m [32m-r <USERNAME>[0m registers the user <USERNAME> to this computer" . PHP_EOL . "[36m{$argv[0]}[0m [32m-a <USERNAME> <SERIAL>[0m verifies the registration of <USERNAME> with a serial sent by email" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -v,--version [32mprints the " . tool . " version[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -r,--register [32mregisters this computer to your leetfiles account[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -a,--activate [32mactivates a registration with an serial number sent by email[0m" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -h,--help [32mshows this help[0m" . PHP_EOL);
 define("confdir",$_SERVER['HOME'] . DIRECTORY_SEPARATOR . ".conf");
 define("conffile",confdir . DIRECTORY_SEPARATOR . "leetfiles");
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
-
+$allowedimgtypes = Array("jpg","jpeg","png","gif");
+ 
 if($argc < 2) {die(usage);}
-if($argv[1] == "-v" || $argv[1] == "--version"){ die("\033[31mleetfiles-cli v" . version . "\033[0m\n");}
+if($argv[1] == "-v" || $argv[1] == "--version") {die("[31mleetfiles-cli v" . version . "[0m" . PHP_EOL);}
 if($argv[1] == "-h" || $argv[1] == "--help") {die(usage);}
-
-
+if(!function_exists('curl_init')) {die("[31mError: Couldn't find the curl extension. Please check that it's installed on your system (try sudo apt-get install php5-curl on linux) or built with your php installation.[0m" . PHP_EOL);}
+if(!debug) {error_reporting(0);}
+ 
 if (!function_exists('curl_file_create'))
 {
   function curl_file_create($filename, $mimetype = '', $postname = '')
@@ -31,56 +47,71 @@ if (!function_exists('curl_file_create'))
   }
 }
 if(!is_dir(confdir)) {mkdir(confdir);}
-
+ 
 if($argv[1] == "--register" || $argv[1] == "-r")
 {
   $nick = $argv[2];
   if(strlen($nick) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick)))
   {
-    die("\033[31mERROR: Not a valid username\033[0m\n");
+    die("[31mERROR: Not a valid username[0m" . PHP_EOL);
   }
-  echo "\033[33mRegistering " . tool . " to {$nick}...\033[0m\n";
+  echo "[33mRegistering " . tool . " to {$nick}...[0m" . PHP_EOL;
   $regstat = post("http://leetfiles.com/registerapp?user={$nick}",NULL,false);
   if($regstat == "true")
   {
-    echo "\033[32mAlright! Please check your email for verification.\033[0m\n";
+    echo "[32mAlright! Please check your email for verification.[0m" . PHP_EOL;
   }
   else
   {
-    echo "\033[31mError: invalid response. Does the user exist?\033[0m\n";
+    echo "[31mError: invalid response. Does the user exist?[0m" . PHP_EOL;
   }
   exit;
 }
-
+ 
 if($argv[1] == "--activate" || $argv[1] == "-a")
 {
   $nick = $argv[2];
   $serial = $argv[3];
-  if(strlen($nick) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("\033[31mERROR: Not a valid username\033[0m\n");}
-  if(strlen($serial) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("\033[31mERROR: Username and / or serial number is missing\033[0m\n");}
-  echo "\033[33mVerifying...\033[0m\n";
+  if(strlen($nick) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("[31mERROR: Not a valid username[0m" . PHP_EOL);}
+  if(strlen($serial) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("[31mERROR: Username and / or serial number is missing[0m" . PHP_EOL);}
+  echo "[33mVerifying...[0m" . PHP_EOL;
   $status = post("http://leetfiles.com/activateapp.php?username={$nick}&serial={$serial}",NULL,false);
   //var_dump($status);
   if($status == "true")
   {
-    $reg = Array("verified" => true,"serial" => $serial);
+    $reg = Array("verified" => true,"serial" => $serial,"user" => $nick);
     file_put_contents(conffile,json_encode($reg));
-    die("\033[32mAlright, {$nick} is now registered to this computer.\033[0m\n");
+    die("[32mAlright, {$nick} is now registered to this computer.[0m" . PHP_EOL);
   }
   else
   {
-    die("\033[31mERROR: Not a valid serial number\033[0m\n");
+    die("[31mERROR: Not a valid serial number[0m" . PHP_EOL);
   }
 }
-
+ 
 for($i = 1;$i<sizeof($argv);$i++)
 {
   $file = $argv[$i];
+  $wsin = false; // was stding - file src
   $type = explode("=",$file);
   if(sizeof($type) > 1) {$file = $type[1];} // everything to use less brackets.... unnecessary.
   $type = (sizeof($type) > 1) ? $type[0] : "file";
-  if(!file_exists($file)) {die("\033[31mERROR: {$file} doesn't exist. Exiting...\033[0m \n");}
-  if(is_dir($file)){die("\033[31mERROR: {$file} is a directory. Exiting...\033[0m \n");}
+  if($file == "-")
+  {
+    $wsin = true;
+    $temp = tempnam(NULL, "tmp");
+    $thandle = fopen($temp, "w");
+    $handle = fopen ("php://stdin","r");
+    while(!feof($handle))
+    {
+      fwrite($thandle, fgets($handle));
+    }
+    fclose($thandle);
+    fclose($handle); 
+    $file = $temp;
+  }
+  if(!file_exists($file)) {die("[31mERROR: {$file} doesn't exist. Exiting...[0m " . PHP_EOL);}
+  if(is_dir($file)){die("[31mERROR: {$file} is a directory. Exiting...[0m " . PHP_EOL);}
   $mime = finfo_file($finfo, $file);
   $m = substr($mime,0,5); // text/ is text and image is image
   $ext = getextension($file);
@@ -89,38 +120,40 @@ for($i = 1;$i<sizeof($argv);$i++)
   $filen = basename($file);
   if($type != "file" && $m != "text/")
   {
-    echo "\033[31mWarning: \033[0m{$file} isn't a textfile. Are you sure you want to paste it?\nType yes to continue: ";
-    if(stdin() != "yes"){ die("Abort.\n");}
+    echo "[31mWarning: [0m{$file} isn't a textfile. Are you sure you want to paste it?" . PHP_EOL . "Type yes to continue: ";
+    if(stdin() != "yes"){ die("Abort." . PHP_EOL);}
   }
   if($m == "image")
   {
-    if(!in_array($ext,Array("jpg","jpeg","png","gif"))) {die("\033[31mERROR: Image extension {$ext} not supported by leetfiles.com. Exiting.\033[0m\n");}
-    if($size > 10485760) {die("\033[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 10 MiB for images. Exiting.\033[0m\n");}
+    if(!in_array($ext,$allowedimgtypes) && !$wsin) {die("[31mERROR: Image extension {$ext} not supported by leetfiles.com. Exiting.[0m" . PHP_EOL);}
+    $it = substr($mime,6); // image type - in case of wrong pipe
+    if(!in_array($it,$allowedimgtypes)) {die("[31mERROR: Image type {$it} not supported by leetfiles.com. Exiting.[0m" . PHP_EOL);}
+    if($size > 10485760) {die("[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 10 MiB for images. Exiting.[0m" . PHP_EOL);}
     $data = array('file' => curl_file_create($file));
-    echo "\033[33mUploading {$filen}...\033[0m\n";
-    echo "\033[32m" . substr(post("http://www.leetfiles.com/image-upload.php?serial=" . serial(),$data),67,-4) . "\033[0m\n";
+    echo "[33mUploading {$filen}...[0m" . PHP_EOL;
+    echo "[32m" . href(post("http://www.leetfiles.com/image-upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
   }
   elseif($type == "file")
   {
-    if($size > 104857600) {die("\033[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 100 MiB for files. Exiting.\033[0m\n");}
+    if($size > 104857600) {die("[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 100 MiB for files. Exiting.[0m" . PHP_EOL);}
     $data = array('file' => curl_file_create($file));
-    echo "\033[33mUploading {$filen}...\033[0m\n";
-    echo "\033[32m" . substr(post("http://www.leetfiles.com/upload.php?serial=" . serial(),$data),66,-4) . "\033[0m\n";
+    echo "[33mUploading {$filen}...[0m" . PHP_EOL;
+    echo "[32m" . href(post("http://www.leetfiles.com/upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
   }
   else
   {
     if($type == "plain") {$type = "no-highlight";}
-    echo "\033[33mPasting {$filen}...\033[0m\n";
-    echo "\033[32m" . substr(post("http://www.leetfiles.com/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}"),63,-4) . "\033[0m\n";
+    echo "[33mPasting {$filen}...[0m" . PHP_EOL;
+    echo "[32m" . href(post("http://www.leetfiles.com/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}")) . "[0m" . PHP_EOL;
   }
-
-  //echo "File: {$file} type: {$type} Mimetype: {$mime} Extension: {$ext}\n";
+ unlink($temp);
+  //echo "File: {$file} type: {$type} Mimetype: {$mime} Extension: {$ext}" . PHP_EOL;
 }
 finfo_close($finfo);
 function stdin()
 {
   $handle = fopen ("php://stdin","r");
-  $text = strtolower(str_replace("\n","",fgets($handle)));
+  $text = strtolower(str_replace(PHP_EOL,"",fgets($handle)));
   fclose($handle);
   return $text;
 }
@@ -141,6 +174,8 @@ function getextension($file,$split = false)
 }
   function post($url,$data,$post = true)
   {
+    $p = $post ? "true" : "false";
+    if(debug) {echo "[31mDEBUG:[0m function post() called, url: {$url}, post: {$p}, data: {$data}" . PHP_EOL;}
     $ch = curl_init( $url );
     curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
     curl_setopt( $ch, CURLOPT_HEADER, false );
@@ -155,6 +190,7 @@ function getextension($file,$split = false)
     curl_setopt( $ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0");
     $restext = curl_exec( $ch );
     curl_close( $ch );
+    if(debug) {echo "[31mDEBUG:[0m Request finished. Result: {$restext}" . PHP_EOL;}
     return $restext;
   }
 function formatsize($size)
@@ -183,6 +219,14 @@ function serial()
   if($json['verified'] != true){return "";}
   if(strlen($json['serial']) != 32) {return "";}
   return $json['serial'];
+}
+function href($html)
+{
+  $dom = new DOMDocument();
+  $dom->loadHTML($html);
+  $a = $dom->getElementsByTagName('a');
+  $firsta = $a->item(0);
+  return $firsta->getAttribute("href");
 }
 function o2a($d) {if (is_object($d)) {$d = get_object_vars($d);}if (is_array($d)) {return array_map(__FUNCTION__, $d);}else {return $d;}}
 ?>

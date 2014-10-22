@@ -98,7 +98,7 @@ for($i = 1;$i<sizeof($argv);$i++)
   $type = (sizeof($type) > 1) ? $type[0] : "file";
   if($file == "-")
   {
-    if($wsin) {die("\033[31mERROR: You can only use stdin once / pipe one time.\033[0m " . PHP_EOL);}
+    if($wsin) {die("\033[31mERROR: You can only use stdin pipe once.\033[0m " . PHP_EOL);}
     $wsin = true;
     $temp = tempnam(NULL, "tmp");
     $tempf = fopen($temp, "w");

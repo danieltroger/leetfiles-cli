@@ -1,21 +1,21 @@
 #!/usr/bin/env php -d memory_limit=102M
 <?php
- 
+
 /*
 The MIT License (MIT)
- 
+
 Copyright (c) 2014 Daniel Troger
- 
+
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
 use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
 the Software, and to permit persons to whom the Software is furnished to do so,
 subject to the following conditions:
- 
+
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
 FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
@@ -23,7 +23,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
- 
+
 define("version","2.2.3b");
 define("tool","leetfiles-cli PHP");
 define("debug",false);
@@ -33,13 +33,13 @@ define("conffile",confdir . DIRECTORY_SEPARATOR . "leetfiles");
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $allowedimgtypes = Array("jpg","jpeg","png","gif");
 $wsin = false; // was stding - file src
- 
+
 if($argc < 2) {die(usage);}
 if($argv[1] == "-v" || $argv[1] == "--version") {die("[31m" . tool . " v" . version . "[0m" . PHP_EOL);}
 if($argv[1] == "-h" || $argv[1] == "--help") {die(usage);}
 if(!function_exists('curl_init')) {die("[31mError: Couldn't find the curl extension. Please check that it's installed on your system (try sudo apt-get install php5-curl on linux) or built with your php installation.[0m" . PHP_EOL);}
 if(!debug) {error_reporting(0);}
- 
+
 if (!function_exists('curl_file_create'))
 {
   function curl_file_create($filename, $mimetype = '', $postname = '')
@@ -48,7 +48,7 @@ if (!function_exists('curl_file_create'))
   }
 }
 if(!is_dir(confdir)) {mkdir(confdir);}
- 
+
 if($argv[1] == "--register" || $argv[1] == "-r")
 {
   $nick = $argv[2];
@@ -68,7 +68,7 @@ if($argv[1] == "--register" || $argv[1] == "-r")
   }
   exit;
 }
- 
+
 if($argv[1] == "--activate" || $argv[1] == "-a")
 {
   $nick = $argv[2];
@@ -89,7 +89,7 @@ if($argv[1] == "--activate" || $argv[1] == "-a")
     die("[31mERROR: Not a valid serial number[0m" . PHP_EOL);
   }
 }
- 
+
 for($i = 1;$i<sizeof($argv);$i++)
 {
   $file = $argv[$i];
@@ -98,7 +98,7 @@ for($i = 1;$i<sizeof($argv);$i++)
   $type = (sizeof($type) > 1) ? $type[0] : "file";
   if($file == "-")
   {
-    if($wsin) {die("[31mERROR: You can only use stdin once / pipe one time.[0m " . PHP_EOL);}
+    if($wsin) {die("\033[31mERROR: You can only use stdin once / pipe one time.\033[0m " . PHP_EOL);}
     $wsin = true;
     $temp = tempnam(NULL, "tmp");
     $tempf = fopen($temp, "w");

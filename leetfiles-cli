@@ -24,14 +24,13 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
  
-define("version","2.1.3b");
+define("version","2.1.2");
 define("tool","leetfiles-cli");
 define("debug",false);
 define("usage","[31m" . tool . " v" . version . "[0m" . PHP_EOL . "[32mUsage:[0m" . PHP_EOL . "[36m" .$argv[0] ."[0m [[-r,--register <username>] [-a, --activate <username> <serial>], [-h, --help], [-v, --version]] [language=]<file> [[language=]<file2>] [[language=]<file>3] ...[32m uploads each file to leetfiles.com with automatic file / image detection." . PHP_EOL . "If language is specified a paste is being done and language is used for the syntax highligter.[0m" . PHP_EOL . PHP_EOL . "[33mExamples:[0m" . PHP_EOL . "[36m{$argv[0]}[0m [32mfi.le[0m uploads fi.le as an image" . PHP_EOL . "[36m{$argv[0]}[0m [32m/an/image.png[0m uploads image.png as image" . PHP_EOL . "[36m{$argv[0]}[0m [32mphp=anscript.php plain=plain.txt[0m pastes anscript.php with php as language and plain.txt" . PHP_EOL . "[36m{$argv[0]}[0m [32m-r <USERNAME>[0m registers the user <USERNAME> to this computer" . PHP_EOL . "[36m{$argv[0]}[0m [32m-a <USERNAME> <SERIAL>[0m verifies the registration of <USERNAME> with a serial sent by email" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -v,--version [32mprints the " . tool . " version[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -r,--register [32mregisters this computer to your leetfiles account[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -a,--activate [32mactivates a registration with an serial number sent by email[0m" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -h,--help [32mshows this help[0m" . PHP_EOL);
 define("confdir",$_SERVER['HOME'] . DIRECTORY_SEPARATOR . ".conf");
 define("conffile",confdir . DIRECTORY_SEPARATOR . "leetfiles");
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
-$allowedimgtypes = Array("jpg","jpeg","png","gif");
  
 if($argc < 2) {die(usage);}
 if($argv[1] == "-v" || $argv[1] == "--version") {die("[31mleetfiles-cli v" . version . "[0m" . PHP_EOL);}
@@ -92,24 +91,9 @@ if($argv[1] == "--activate" || $argv[1] == "-a")
 for($i = 1;$i<sizeof($argv);$i++)
 {
   $file = $argv[$i];
-  $wsin = false; // was stding - file src
   $type = explode("=",$file);
   if(sizeof($type) > 1) {$file = $type[1];} // everything to use less brackets.... unnecessary.
   $type = (sizeof($type) > 1) ? $type[0] : "file";
-  if($file == "-")
-  {
-    $wsin = true;
-    $temp = tempnam(NULL, "tmp");
-    $thandle = fopen($temp, "w");
-    $handle = fopen ("php://stdin","r");
-    while(!feof($handle))
-    {
-      fwrite($thandle, fgets($handle));
-    }
-    fclose($thandle);
-    fclose($handle); 
-    $file = $temp;
-  }
   if(!file_exists($file)) {die("[31mERROR: {$file} doesn't exist. Exiting...[0m " . PHP_EOL);}
   if(is_dir($file)){die("[31mERROR: {$file} is a directory. Exiting...[0m " . PHP_EOL);}
   $mime = finfo_file($finfo, $file);
@@ -125,9 +109,7 @@ for($i = 1;$i<sizeof($argv);$i++)
   }
   if($m == "image")
   {
-    if(!in_array($ext,$allowedimgtypes) && !$wsin) {die("[31mERROR: Image extension {$ext} not supported by leetfiles.com. Exiting.[0m" . PHP_EOL);}
-    $it = substr($mime,6); // image type - in case of wrong pipe
-    if(!in_array($it,$allowedimgtypes)) {die("[31mERROR: Image type {$it} not supported by leetfiles.com. Exiting.[0m" . PHP_EOL);}
+    if(!in_array($ext,Array("jpg","jpeg","png","gif"))) {die("[31mERROR: Image extension {$ext} not supported by leetfiles.com. Exiting.[0m" . PHP_EOL);}
     if($size > 10485760) {die("[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 10 MiB for images. Exiting.[0m" . PHP_EOL);}
     $data = array('file' => curl_file_create($file));
     echo "[33mUploading {$filen}...[0m" . PHP_EOL;
@@ -146,7 +128,7 @@ for($i = 1;$i<sizeof($argv);$i++)
     echo "[33mPasting {$filen}...[0m" . PHP_EOL;
     echo "[32m" . href(post("http://www.leetfiles.com/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}")) . "[0m" . PHP_EOL;
   }
- unlink($temp);
+ 
   //echo "File: {$file} type: {$type} Mimetype: {$mime} Extension: {$ext}" . PHP_EOL;
 }
 finfo_close($finfo);
@@ -230,3 +212,6 @@ function href($html)
 }
 function o2a($d) {if (is_object($d)) {$d = get_object_vars($d);}if (is_array($d)) {return array_map(__FUNCTION__, $d);}else {return $d;}}
 ?>
+ 
+
+

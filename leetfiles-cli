@@ -24,8 +24,8 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-define("version","2.2.3b");
-define("tool","leetfiles-cli PHP");
+define("version","2.2.4b");
+define("tool","leetfiles-cli");
 define("debug",false);
 define("usage","[31m" . tool . " v" . version . "[0m" . PHP_EOL . "[32mUsage:[0m" . PHP_EOL . "[36m" .$argv[0] ."[0m [[-r,--register <username>] [-a, --activate <username> <serial>], [-h, --help], [-v, --version]] [language=]<file> [[language=]<file2>] [[language=]<file>3] ...[32m uploads each file to leetfiles.com with automatic file / image detection." . PHP_EOL . PHP_EOL . "\003[35mIf language is specified a paste is being done and language is used for the syntax highligter." . PHP_EOL . "If the specified filename of a file is - stdin will be used, where it forces pasting even if the (guessed) type of the input isn't text. Piped files don't get extensions.\033[0m" . PHP_EOL . PHP_EOL . "[33mExamples:[0m" . PHP_EOL . "[36m{$argv[0]}[0m [32mfi.le[0m uploads fi.le as an image" . PHP_EOL . "[36m{$argv[0]}[0m [32m/an/image.png[0m uploads image.png as image" . PHP_EOL . "[36m{$argv[0]}[0m [32mphp=anscript.php plain=plain.txt[0m pastes anscript.php with php as language and plain.txt" . PHP_EOL . "[36m{$argv[0]}[0m [32m-r <USERNAME>[0m registers the user <USERNAME> to this computer" . PHP_EOL . "[36m{$argv[0]}[0m [32m-a <USERNAME> <SERIAL>[0m verifies the registration of <USERNAME> with a serial sent by email" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -v,--version [32mprints the " . tool . " version[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -r,--register [32mregisters this computer to your leetfiles account[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -a,--activate [32mactivates a registration with an serial number sent by email[0m" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -h,--help [32mshows this help[0m" . PHP_EOL);
 define("confdir",$_SERVER['HOME'] . DIRECTORY_SEPARATOR . ".conf");

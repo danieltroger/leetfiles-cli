@@ -147,7 +147,7 @@ for($i = 1;$i<sizeof($argv);$i++)
     echo "[33mPasting {$filen}...[0m" . PHP_EOL;
     echo "[32m" . href(post("http://www.leetfiles.com/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}")) . "[0m" . PHP_EOL;
   }
- unlink($temp);
+ isset($temp) ? unlink($temp) : null;
   //echo "File: {$file} type: {$type} Mimetype: {$mime} Extension: {$ext}" . PHP_EOL;
 }
 finfo_close($finfo);
@@ -176,7 +176,7 @@ function getextension($file,$split = false)
   function post($url,$data,$post = true)
   {
     $p = $post ? "true" : "false";
-    if(debug) {echo "[31mDEBUG:[0m function post() called, url: {$url}, post: {$p}, data: {$data}" . PHP_EOL;}
+    if(debug) {echo "[31mDEBUG:[0m function post() called, url: {$url}, post: {$p}, data: " . print_r($data,1) . PHP_EOL;}
     $ch = curl_init( $url );
     curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
     curl_setopt( $ch, CURLOPT_HEADER, false );
@@ -188,9 +188,12 @@ function getextension($file,$split = false)
       curl_setopt($ch,CURLOPT_POSTFIELDS, $data);
     }
     curl_setopt( $ch, CURLOPT_BINARYTRANSFER, true);
-    curl_setopt($ch,CURLOPT_TIMEOUT,60*60*24);
+    curl_setopt($ch,CURLOPT_TIMEOUT,60*60);
+    curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,"prog");
+    curl_setopt($ch, CURLOPT_NOPROGRESS, false);
     $restext = curl_exec( $ch );
     curl_close( $ch );
+    echo PHP_EOL;
     if(debug) {echo "[31mDEBUG:[0m Request finished. Result: {$restext}" . PHP_EOL;}
     return $restext;
   }
@@ -228,6 +231,12 @@ function href($html)
   $a = $dom->getElementsByTagName('a');
   $firsta = $a->item(0);
   return $firsta->getAttribute("href");
+}
+function prog($res,$dlsize, $yetdl, $ulsize, $yetul)
+{
+    $prs = $ulsize / 100;
+    for($o = 0; $o < 50;$o++){echo " ";} echo "\r"; // clean up all shit
+    echo round($yetul == 0 ? 0 : $yetul / $prs,2) . "% uploaded, " . formatsize($yetul) . " of " . formatsize($ulsize) . "\r";
 }
 function o2a($d) {if (is_object($d)) {$d = get_object_vars($d);}if (is_array($d)) {return array_map(__FUNCTION__, $d);}else {return $d;}}
 ?>

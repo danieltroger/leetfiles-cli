@@ -230,6 +230,7 @@ function href($html)
   $dom->loadHTML($html);
   $a = $dom->getElementsByTagName('a');
   $firsta = $a->item(0);
+  if(!is_object($firsta)){die("[31mERROR: Invalid response from server. Exiting...[0m " . PHP_EOL);}
   return $firsta->getAttribute("href");
 }
 function prog($res,$dlsize, $yetdl, $ulsize, $yetul)

@@ -26,10 +26,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 define("version","2.3b");
 define("tool","leetfiles-cli");
-define("debug",true);
+define("debug",false);
 define("usage","[31m" . tool . " v" . version . "[0m" . PHP_EOL . "[32mUsage:[0m" . PHP_EOL . "[36m" .$argv[0] ."[0m [[-r,--register <username>] [-a, --activate <username> <serial>], [-h, --help], [-v, --version]] [language=]<file> [[language=]<file2>] [[language=]<file>3] ...[32m uploads each file to leetfiles.com with automatic file / image detection." . PHP_EOL . PHP_EOL . "\003[35mIf language is specified a paste is being done and language is used for the syntax highligter." . PHP_EOL . "If the specified filename of a file is - stdin will be used, where it forces pasting even if the (guessed) type of the input isn't text. Piped files don't get extensions.\033[0m" . PHP_EOL . PHP_EOL . "[33mExamples:[0m" . PHP_EOL . "[36m{$argv[0]}[0m [32mfi.le[0m uploads fi.le as an image" . PHP_EOL . "[36m{$argv[0]}[0m [32m/an/image.png[0m uploads image.png as image" . PHP_EOL . "[36m{$argv[0]}[0m [32mphp=anscript.php plain=plain.txt[0m pastes anscript.php with php as language and plain.txt" . PHP_EOL . "[36m{$argv[0]}[0m [32m-r <USERNAME>[0m registers the user <USERNAME> to this computer" . PHP_EOL . "[36m{$argv[0]}[0m [32m-a <USERNAME> <SERIAL>[0m verifies the registration of <USERNAME> with a serial sent by email" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -v,--version [32mprints the " . tool . " version[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -r,--register [32mregisters this computer to your leetfiles account[0m" . PHP_EOL . "[36m" .$argv[0] . "[0m -a,--activate [32mactivates a registration with an serial number sent by email[0m" . PHP_EOL . PHP_EOL . "[36m" .$argv[0] . "[0m -h,--help [32mshows this help[0m" . PHP_EOL);
-define("confdir",$_SERVER['HOME'] . DIRECTORY_SEPARATOR . ".conf");
-define("conffile",confdir . DIRECTORY_SEPARATOR . "leetfiles");
+define("confdir",$_SERVER['HOME'] . DIRECTORY_SEPARATOR . ".config" . DIRECTORY_SEPARATOR);
+define("conffile",confdir . "leetfiles");
+define("base","https://leetfil.es"); // don't change this
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $allowedimgtypes = Array("jpg","jpeg","png","gif");
 $wsin = false; // was stding - file src
@@ -48,6 +49,8 @@ if (!function_exists('curl_file_create'))
   }
 }
 if(!is_dir(confdir)) {mkdir(confdir);}
+$sid = conf_get("sessid");
+!isset($sid) ? init() : define("sessid",$sid);
 
 if($argv[1] == "--register" || $argv[1] == "-r")
 {
@@ -57,7 +60,7 @@ if($argv[1] == "--register" || $argv[1] == "-r")
     die("[31mERROR: Not a valid username[0m" . PHP_EOL);
   }
   echo "[33mRegistering " . tool . " to {$nick}...[0m" . PHP_EOL;
-  $regstat = post("http://leetfiles.com/registerapp?user={$nick}",NULL,false);
+  $regstat = post(base . "/registerapp?user={$nick}",NULL,false,false);
   if($regstat == "true")
   {
     echo "[32mAlright! Please check your email for verification.[0m" . PHP_EOL;
@@ -76,12 +79,11 @@ if($argv[1] == "--activate" || $argv[1] == "-a")
   if(strlen($nick) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("[31mERROR: Not a valid username[0m" . PHP_EOL);}
   if(strlen($serial) < 1 || !ctype_alnum(str_replace(array("-","_"), '', $nick))) {die("[31mERROR: Username and / or serial number is missing[0m" . PHP_EOL);}
   echo "[33mVerifying...[0m" . PHP_EOL;
-  $status = post("http://leetfiles.com/activateapp.php?username={$nick}&serial={$serial}",NULL,false);
-  //var_dump($status);
+  $status = post(base . "/activateapp.php?username={$nick}&serial={$serial}",NULL,false,false);
   if($status == "true")
   {
-    $reg = Array("verified" => true,"serial" => $serial,"user" => $nick);
-    file_put_contents(conffile,json_encode($reg));
+    unlink(conffile);
+    init(Array("verified" => true,"serial" => $serial,"user" => $nick));
     die("[32mAlright, {$nick} is now registered to this computer.[0m" . PHP_EOL);
   }
   else
@@ -132,20 +134,20 @@ for($i = 1;$i<sizeof($argv);$i++)
     if($size > 10485760) {die("[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 10 MiB for images. Exiting.[0m" . PHP_EOL);}
     $data = array('file' => curl_file_create($file),'submit' => '','priv' => 0, 'nsfw' => 0); // TODO
     echo "[33mUploading {$filen}...[0m" . PHP_EOL;
-    echo "[32m" . href(post("http://leetfil.es/image-upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
+    echo "[32m" . href(post(base . "/image-upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
   }
   elseif($type == "file")
   {
     if($size > 104857600) {die("[31mERROR: the size of {$filen} is {$fsize} which is more than the allowed 100 MiB for files. Exiting.[0m" . PHP_EOL);}
     $data = array('file' => curl_file_create($file), 'submit' => '','priv' => 0, 'nsfw' => 0);
     echo "[33mUploading {$filen}...[0m" . PHP_EOL;
-    echo "[32m" . href(post("http://leetfil.es/upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
+    echo "[32m" . href(post(base . "/upload.php?serial=" . serial(),$data)) . "[0m" . PHP_EOL;
   }
   else
   {
     if($type == "plain") {$type = "no-highlight";}
     echo "[33mPasting {$filen}...[0m" . PHP_EOL;
-    echo "[32m" . href(post("http://leetfil.es/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}")) . "[0m" . PHP_EOL;
+    echo "[32m" . href(post(base . "/code-upload.php?serial=" . serial(),"codepaste=" . urlencode(file_get_contents($file)) . "&language={$type}")) . "[0m" . PHP_EOL;
   }
  isset($temp) ? unlink($temp) : null;
   //echo "File: {$file} type: {$type} Mimetype: {$mime} Extension: {$ext}" . PHP_EOL;
@@ -173,24 +175,28 @@ function getextension($file,$split = false)
     return array($ext,implode(".",$extension));
   }
 }
-  function post($url,$data,$post = true)
+  function post($url,$data,$post = true,$prog = true)
   {
     $p = $post ? "true" : "false";
     if(debug) {echo "[31mDEBUG:[0m function post() called, url: {$url}, post: {$p}, data: " . print_r($data,1) . PHP_EOL;}
     $ch = curl_init( $url );
-    curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
-    curl_setopt( $ch, CURLOPT_HEADER, false );
-    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true );
+    curl_setopt($ch, CURLOPT_HEADER, false );
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true );
     curl_setopt( $ch, CURLOPT_USERAGENT,tool . " v" . version);
     if($post)
     {
       curl_setopt($ch,CURLOPT_POST, true);
       curl_setopt($ch,CURLOPT_POSTFIELDS, $data);
     }
-    curl_setopt( $ch, CURLOPT_BINARYTRANSFER, true);
+    if($prog)
+    {
+      curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,"prog");
+      curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+    }
+    curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
     curl_setopt($ch,CURLOPT_TIMEOUT,60*60);
-    curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,"prog");
-    curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+    curl_setopt($ch,CURLOPT_COOKIE,sessid);
     $restext = curl_exec( $ch );
     curl_close( $ch );
     echo PHP_EOL;
@@ -218,11 +224,32 @@ function formatsize($size)
 }
 function serial()
 {
-  if(!file_exists(conffile)){return "";}
-  $json = o2a(json_decode(file_get_contents(conffile)));
+  $json = conf_get();
   if($json['verified'] != true){return "";}
   if(strlen($json['serial']) != 32) {return "";}
   return $json['serial'];
+}
+function conf_get($key = false)
+{
+  file_exists(conffile) ? null : file_put_contents(conffile,"[]");
+  $json = o2a(json_decode(file_get_contents(conffile)));
+  if(!$key)
+  {
+    return $json;
+  }
+  else
+  {
+    return $json[$key];
+  }
+}
+function conf_put($arr)
+{
+  $c = conf_get();
+  foreach($arr as $key => $value)
+  {
+    $c[$key] = $value;
+  }
+  file_put_contents(conffile,json_encode($c));
 }
 function href($html)
 {
@@ -238,6 +265,37 @@ function prog($res,$dlsize, $yetdl, $ulsize, $yetul)
     $prs = $ulsize / 100;
     for($o = 0; $o < 50;$o++){echo " ";} echo "\r"; // clean up all shit
     echo round($yetul == 0 ? 0 : $yetul / $prs,2) . "% uploaded, " . formatsize($yetul) . " of " . formatsize($ulsize) . "\r";
+}
+function init($more = false)
+{
+  echo "[33mInitializing " . tool . "...[0m" . PHP_EOL;
+  $sid = explode(";",getcookie("Set-Cookie"))[0] . ";";
+  !defined("sessid") ? define("sessid",$sid) : null;
+  if(!$more)
+  {
+    conf_put(Array("sessid" => $sid));
+  }
+  else
+  {
+    if(!is_array($more)){die("[31mERROR: Something went horribly on line " . __LINE__ . ". Exiting...[0m " . PHP_EOL);}
+    $more["sessid"] = $sid;
+    conf_put($more);
+  }
+  echo "[32mAlright![0m" . PHP_EOL;
+}
+function getcookie($key,$url = base)
+{
+  $headers = get_headers($url);
+  foreach($headers as $header)
+  {
+    $arr = explode(":",$header);
+    if($arr[0] == $key)
+    {
+      $a = substr($arr[1],1);
+      echo $a . PHP_EOL;
+      return $a;
+    }
+  }
 }
 function o2a($d) {if (is_object($d)) {$d = get_object_vars($d);}if (is_array($d)) {return array_map(__FUNCTION__, $d);}else {return $d;}}
 ?>
